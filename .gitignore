@@ -1,0 +1,16 @@
+.env
+.deps/
+.tmp/
+.venv/
+venv/
+__pycache__/
+logs/
+*.py[cod]
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+smoke_test*.db
+postgres_data/
+logs/*.log
+uvicorn*.log

@@ -1,0 +1,21 @@
+[Unit]
+Description=eth-dex-radar FastAPI service
+After=network.target postgresql.service
+
+[Service]
+# Replace this user with the Linux user that owns the project files.
+User=ethradar
+Group=ethradar
+
+# Replace this path with the absolute path to the project directory.
+WorkingDirectory=/opt/eth-dex-radar
+
+# Replace this path if your virtual environment is in another location.
+ExecStart=/opt/eth-dex-radar/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
