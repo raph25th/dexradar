@@ -9,15 +9,20 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.collectors.dexscreener import fetch_candidate_pairs
-from app.db.models import Alert, Pair, PairSnapshot, Token
+from app.db.models import Alert, CandidateObservation, Pair, PairSnapshot, Token
 from app.db.session import SessionLocal
 from app.runtime_state import set_last_collection_summary
-from app.services.alerts import should_alert
+from app.services.alerts import (
+    can_create_alert_after_cooldown,
+    passes_alert_quality_gate,
+    should_alert,
+)
 from app.services.filters import (
     get_early_watch_rejection_reasons,
     get_filter_rejection_reasons,
     passes_basic_filters,
 )
+from app.services.filter_v2 import build_filter_v2_metrics, evaluate_filter_v2
 from app.services.scoring import calculate_market_score
 from app.telegram.bot import send_telegram_message
 from app.telegram.templates import render_alert_message
@@ -31,11 +36,17 @@ def _summary() -> dict[str, int]:
     return {
         "fetched": 0,
         "snapshots_created": 0,
+        "observations_created": 0,
         "early_watch_passed": 0,
         "passed_filters": 0,
         "scored": 0,
         "alerts_created": 0,
         "telegram_sent": 0,
+        "v2_early_watch": 0,
+        "v2_watch": 0,
+        "v2_high_signal": 0,
+        "v2_avoid": 0,
+        "v2_rejected": 0,
     }
 
 
@@ -196,7 +207,61 @@ def _create_alert(
     return alert
 
 
-def _save_pair_snapshot(pair: dict[str, Any]) -> tuple[int, int]:
+def _build_alert_reason_lines(
+    score: int,
+    level: str,
+    score_reasons: list[str],
+    cooldown_reason: str,
+) -> list[str]:
+    key_reasons = " | ".join(score_reasons[:8]) if score_reasons else "score threshold reached"
+    return [
+        f"score={score}",
+        f"level={level}",
+        "alert_quality=passed",
+        f"cooldown={cooldown_reason}",
+        f"key_reasons={key_reasons}",
+    ]
+
+
+def _create_candidate_observation(
+    session: Session,
+    pair_id: int,
+    snapshot_id: int,
+    token_id: int,
+    pair: dict[str, Any],
+) -> CandidateObservation:
+    metrics = build_filter_v2_metrics(pair)
+    evaluation = evaluate_filter_v2(metrics)
+    observation = CandidateObservation(
+        pair_id=pair_id,
+        snapshot_id=snapshot_id,
+        token_id=token_id,
+        observed_at=datetime.now(timezone.utc),
+        v2_status=str(evaluation["status"]),
+        passed_profiles_json=list(evaluation["passed_profiles"]),
+        reasons_json=list(evaluation["reasons"]),
+        avoid_reasons_json=list(evaluation["avoid_reasons"]),
+        metrics_json=dict(evaluation["metrics"]),
+        liquidity_usd=_to_decimal(metrics.get("liquidity_usd")),
+        volume_1h=_to_decimal(metrics.get("volume_1h")),
+        volume_24h=_to_decimal(metrics.get("volume_24h")),
+        txns_1h_total=int(metrics.get("txns_1h_total") or 0),
+        buy_ratio=_to_decimal(metrics.get("buy_ratio")),
+        volume_liquidity_ratio_1h=_to_decimal(metrics.get("volume_liquidity_ratio_1h")),
+        fdv_volume_ratio_1h=_to_decimal(metrics.get("fdv_volume_ratio_1h")),
+        liquidity_fdv_ratio=_to_decimal(metrics.get("liquidity_fdv_ratio")),
+        fdv=_to_decimal(metrics.get("fdv")),
+        market_cap=_to_decimal(metrics.get("market_cap")),
+        price_change_1h=_to_decimal(metrics.get("price_change_1h")),
+        price_change_6h=_to_decimal(metrics.get("price_change_6h")),
+        price_change_24h=_to_decimal(metrics.get("price_change_24h")),
+    )
+    session.add(observation)
+    session.flush()
+    return observation
+
+
+def _save_pair_snapshot(pair: dict[str, Any]) -> tuple[int, int, int]:
     session = SessionLocal()
     try:
         token = _upsert_token(session, pair)
@@ -204,8 +269,34 @@ def _save_pair_snapshot(pair: dict[str, Any]) -> tuple[int, int]:
         snapshot = _create_snapshot(session, db_pair, pair)
         pair_id = db_pair.id
         snapshot_id = snapshot.id
+        token_id = token.id
         session.commit()
-        return pair_id, snapshot_id
+        return pair_id, snapshot_id, token_id
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+def _write_candidate_observation(
+    pair_id: int,
+    snapshot_id: int,
+    token_id: int,
+    pair: dict[str, Any],
+) -> str:
+    session = SessionLocal()
+    try:
+        observation = _create_candidate_observation(
+            session,
+            pair_id,
+            snapshot_id,
+            token_id,
+            pair,
+        )
+        v2_status = observation.v2_status
+        session.commit()
+        return v2_status
     except Exception:
         session.rollback()
         raise
@@ -229,6 +320,23 @@ def _write_alert(
     except Exception:
         session.rollback()
         raise
+    finally:
+        session.close()
+
+
+def _get_latest_alert_meta(pair_id: int) -> tuple[datetime | None, str | None]:
+    session = SessionLocal()
+    try:
+        row = session.execute(
+            select(Alert.created_at, Alert.level)
+            .where(Alert.pair_id == pair_id)
+            .order_by(Alert.created_at.desc(), Alert.id.desc())
+            .limit(1)
+        ).first()
+        if row is None:
+            return None, None
+        created_at, level = row
+        return created_at, level
     finally:
         session.close()
 
@@ -272,7 +380,7 @@ async def run_collection_cycle() -> dict[str, int | str]:
             base_symbol = _as_dict(pair.get("baseToken")).get("symbol")
 
             try:
-                pair_id, snapshot_id = _save_pair_snapshot(pair)
+                pair_id, snapshot_id, token_id = _save_pair_snapshot(pair)
                 summary["snapshots_created"] = int(summary["snapshots_created"]) + 1
             except SQLAlchemyError:
                 logger.exception("Database error while saving pair snapshot: pair=%s", pair_address)
@@ -280,6 +388,23 @@ async def run_collection_cycle() -> dict[str, int | str]:
             except Exception:
                 logger.exception("Unexpected error while saving pair snapshot: pair=%s", pair_address)
                 continue
+
+            try:
+                v2_status = _write_candidate_observation(pair_id, snapshot_id, token_id, pair)
+                summary["observations_created"] = int(summary["observations_created"]) + 1
+                summary_key = f"v2_{v2_status}"
+                if summary_key in summary:
+                    summary[summary_key] = int(summary[summary_key]) + 1
+                logger.info(
+                    "Candidate observation created: pair=%s base_symbol=%s v2_status=%s",
+                    pair_address,
+                    base_symbol,
+                    v2_status,
+                )
+            except SQLAlchemyError:
+                logger.exception("Database error while saving candidate observation: pair=%s", pair_address)
+            except Exception:
+                logger.exception("Unexpected error while saving candidate observation: pair=%s", pair_address)
 
             try:
                 early_watch_rejection_reasons = get_early_watch_rejection_reasons(pair)
@@ -314,9 +439,63 @@ async def run_collection_cycle() -> dict[str, int | str]:
                 level = should_alert(score)
 
                 if level is not None:
-                    alert_id = _write_alert(pair_id, snapshot_id, score, level, reasons)
+                    quality_passed, quality_rejection_reasons = passes_alert_quality_gate(pair)
+                    if not quality_passed:
+                        logger.info(
+                            "Alert skipped by quality gate: pair=%s base_symbol=%s level=%s reasons=%s",
+                            pair_address,
+                            base_symbol,
+                            level,
+                            quality_rejection_reasons,
+                        )
+                        continue
+
+                    last_alert_created_at, last_alert_level = _get_latest_alert_meta(pair_id)
+                    cooldown_allowed, cooldown_reason = can_create_alert_after_cooldown(
+                        last_alert_created_at,
+                        last_alert_level,
+                        level,
+                    )
+                    if not cooldown_allowed:
+                        logger.info(
+                            "alert skipped by cooldown: pair=%s base_symbol=%s level=%s last_level=%s last_created_at=%s",
+                            pair_address,
+                            base_symbol,
+                            level,
+                            last_alert_level,
+                            last_alert_created_at,
+                        )
+                        continue
+
+                    if cooldown_reason == "level_upgrade":
+                        logger.info(
+                            "Alert allowed by level upgrade: pair=%s base_symbol=%s previous_level=%s new_level=%s",
+                            pair_address,
+                            base_symbol,
+                            last_alert_level,
+                            level,
+                        )
+
+                    alert_reason_lines = _build_alert_reason_lines(
+                        score,
+                        level,
+                        reasons,
+                        cooldown_reason,
+                    )
+                    alert_id = _write_alert(
+                        pair_id,
+                        snapshot_id,
+                        score,
+                        level,
+                        alert_reason_lines,
+                    )
                     summary["alerts_created"] = int(summary["alerts_created"]) + 1
-                    message = render_alert_message(pair, score, level, reasons)
+                    message = render_alert_message(
+                        pair,
+                        score,
+                        level,
+                        [*reasons, "Alert quality gate passed"],
+                    )
                     sent = await send_telegram_message(message)
                     _update_alert_sent_status(alert_id, sent)
                     if sent:

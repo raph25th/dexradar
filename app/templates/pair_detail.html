@@ -45,6 +45,116 @@
   </div>
 </section>
 
+<section class="panel">
+  <div class="panel-header">
+    <h2>Filter v2 Diagnostics</h2>
+    {% if filter_v2 %}
+      <span class="v2-status-badge {{ filter_v2.status_meta.class }}">{{ filter_v2.status_meta.label }}</span>
+    {% else %}
+      <span class="muted">No snapshot data</span>
+    {% endif %}
+  </div>
+  {% if filter_v2 %}
+    {% set metrics = filter_v2.metrics %}
+    <div class="diagnostics-grid">
+      <div class="diagnostics-block">
+        <h3>Derived Metrics</h3>
+        <div class="metric-chip-grid">
+          <span class="metric-chip">Txns 1h <strong>{{ metrics.txns_1h_total }}</strong></span>
+          <span class="metric-chip">Buy Ratio <strong>{{ metrics.buy_ratio|ratio_percent }}</strong></span>
+          <span class="metric-chip">V/L 1h <strong>{{ metrics.volume_liquidity_ratio_1h|ratio(2) }}</strong></span>
+          <span class="metric-chip">FDV/Vol 1h <strong>{{ metrics.fdv_volume_ratio_1h|ratio(1) }}</strong></span>
+          <span class="metric-chip">Liq/FDV <strong>{{ metrics.liquidity_fdv_ratio|ratio(4) }}</strong></span>
+        </div>
+      </div>
+
+      <div class="diagnostics-block">
+        <h3>Passed Profiles</h3>
+        {% if filter_v2.passed_profiles %}
+          <div class="chip-row">
+            {% for profile in filter_v2.passed_profiles %}
+              <span class="reason-chip healthy">{{ profile }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-inline">No v2 profile passed.</div>
+        {% endif %}
+      </div>
+
+      <div class="diagnostics-block">
+        <h3>Avoid Reasons</h3>
+        {% if filter_v2.avoid_reasons %}
+          <div class="chip-row">
+            {% for reason in filter_v2.avoid_reasons %}
+              <span class="reason-chip avoid">{{ reason }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-inline">No avoid reasons.</div>
+        {% endif %}
+      </div>
+
+      <div class="diagnostics-block">
+        <h3>Reasons</h3>
+        {% if filter_v2.reasons %}
+          <div class="chip-row">
+            {% for reason in filter_v2.reasons %}
+              <span class="reason-chip">{{ reason }}</span>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-inline">No reasons.</div>
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    <div class="empty-state">Filter v2 diagnostics will appear after the first snapshot.</div>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Last 20 Candidate Observations</h2>
+    <span class="muted">{{ observations|length }} rows</span>
+  </div>
+  {% if observations %}
+    <div class="table-wrap observation-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Observed</th>
+            <th>V2 Status</th>
+            <th>Liquidity</th>
+            <th>Volume 1h</th>
+            <th>Txns 1h</th>
+            <th>Buy Ratio</th>
+            <th>V/L 1h</th>
+            <th>FDV/Vol 1h</th>
+            <th>Reasons</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for observation in observations %}
+            <tr>
+              <td title="{{ observation.observed_at|datetime }}">{{ observation.observed_at|relative_time }}</td>
+              <td>{{ observation.v2_status.replace("_", " ") }}</td>
+              <td>{{ observation.liquidity_usd|money }}</td>
+              <td>{{ observation.volume_1h|money }}</td>
+              <td>{{ observation.txns_1h_total }}</td>
+              <td>{{ observation.buy_ratio|ratio_percent }}</td>
+              <td>{{ observation.volume_liquidity_ratio_1h|ratio(2) }}</td>
+              <td>{{ observation.fdv_volume_ratio_1h|ratio(1) }}</td>
+              <td class="compact-reasons">{{ (observation.reasons_json or observation.avoid_reasons_json or [])[:4]|join(", ") }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">No Filter v2 observations for this pair yet.</div>
+  {% endif %}
+</section>
+
 <section class="chart-grid">
   <div class="placeholder">Price chart coming soon</div>
   <div class="placeholder">Liquidity chart coming soon</div>

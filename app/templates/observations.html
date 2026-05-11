@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+  <form class="filters" method="get" action="/dashboard/observations">
+    <label>
+      V2 Status
+      <select name="v2_status">
+        <option value="all" {% if filters.v2_status == "all" %}selected{% endif %}>All</option>
+        <option value="early_watch" {% if filters.v2_status == "early_watch" %}selected{% endif %}>Early Watch</option>
+        <option value="watch" {% if filters.v2_status == "watch" %}selected{% endif %}>Watch</option>
+        <option value="high_signal" {% if filters.v2_status == "high_signal" %}selected{% endif %}>High Signal</option>
+        <option value="avoid" {% if filters.v2_status == "avoid" %}selected{% endif %}>Avoid</option>
+        <option value="rejected" {% if filters.v2_status == "rejected" %}selected{% endif %}>Rejected</option>
+      </select>
+    </label>
+    <label>
+      Min liquidity
+      <input type="number" name="min_liquidity" value="{{ filters.min_liquidity or '' }}" min="0" step="1000" placeholder="Min liquidity">
+    </label>
+    <label>
+      Min volume 1h
+      <input type="number" name="min_volume_1h" value="{{ filters.min_volume_1h or '' }}" min="0" step="1000" placeholder="Min volume 1h">
+    </label>
+    <label>
+      Min txns 1h
+      <input type="number" name="min_txns_1h" value="{{ filters.min_txns_1h or '' }}" min="0" step="1" placeholder="Min txns 1h">
+    </label>
+    <label>
+      Max FDV
+      <input type="number" name="max_fdv" value="{{ filters.max_fdv or '' }}" min="0" step="100000" placeholder="Max FDV">
+    </label>
+    <label>
+      Limit
+      <input type="number" name="limit" value="{{ filters.limit }}" min="1" max="1000" step="1" placeholder="Limit">
+    </label>
+    <button type="submit">Apply</button>
+  </form>
+</section>
+
+<section class="preset-bar">
+  <a class="preset-link" href="/dashboard/observations">Latest</a>
+  <a class="preset-link" href="/dashboard/observations?v2_status=early_watch">V2 Early</a>
+  <a class="preset-link" href="/dashboard/observations?v2_status=watch">V2 Watch</a>
+  <a class="preset-link" href="/dashboard/observations?v2_status=high_signal">V2 High</a>
+  <a class="preset-link preset-danger" href="/dashboard/observations?v2_status=avoid">Avoid</a>
+  <a class="preset-link" href="/dashboard/observations?min_volume_1h=5000">Healthy Momentum</a>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Candidate Observations</h2>
+    <span class="muted">{{ observations|length }} rows</span>
+  </div>
+  {% if observations %}
+    <div class="table-wrap observation-table">
+      <table>
+        <thead>
+          <tr>
+            <th>Observed</th>
+            <th>Token</th>
+            <th>Pair</th>
+            <th>V2 Status</th>
+            <th>Liquidity</th>
+            <th>Volume 1h</th>
+            <th>Volume 24h</th>
+            <th>Txns 1h</th>
+            <th>Buy Ratio</th>
+            <th>V/L 1h</th>
+            <th>FDV/Vol 1h</th>
+            <th>FDV</th>
+            <th>1h</th>
+            <th>6h</th>
+            <th>24h</th>
+            <th>Reasons</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for observation in observations %}
+            {% set token = observation.pair.base_token %}
+            {% set meta = v2_status_meta[observation.v2_status] %}
+            <tr>
+              <td title="{{ observation.observed_at|datetime }}">{{ observation.observed_at|relative_time }}</td>
+              <td><strong>{{ token.symbol or "n/a" }}</strong></td>
+              <td class="mono">{{ observation.pair.pair_address|short_address }}</td>
+              <td><span class="v2-status-badge {{ meta.class }}">{{ meta.label }}</span></td>
+              <td>{{ observation.liquidity_usd|money }}</td>
+              <td>{{ observation.volume_1h|money }}</td>
+              <td>{{ observation.volume_24h|money }}</td>
+              <td>{{ observation.txns_1h_total }}</td>
+              <td>{{ observation.buy_ratio|ratio_percent }}</td>
+              <td>{{ observation.volume_liquidity_ratio_1h|ratio(2) }}</td>
+              <td>{{ observation.fdv_volume_ratio_1h|ratio(1) }}</td>
+              <td>{{ observation.fdv|money }}</td>
+              <td class="{% if observation.price_change_1h and observation.price_change_1h > 0 %}positive{% elif observation.price_change_1h and observation.price_change_1h < 0 %}negative{% endif %}">{{ observation.price_change_1h|percent }}</td>
+              <td class="{% if observation.price_change_6h and observation.price_change_6h > 0 %}positive{% elif observation.price_change_6h and observation.price_change_6h < 0 %}negative{% endif %}">{{ observation.price_change_6h|percent }}</td>
+              <td class="{% if observation.price_change_24h and observation.price_change_24h > 0 %}positive{% elif observation.price_change_24h and observation.price_change_24h < 0 %}negative{% endif %}">{{ observation.price_change_24h|percent }}</td>
+              <td class="compact-reasons">{{ (observation.reasons_json or observation.avoid_reasons_json or [])[:4]|join(", ") }}</td>
+              <td><a href="/dashboard/pairs/{{ observation.pair_id }}">detail</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">No candidate observations matched current filters.</div>
+  {% endif %}
+</section>
+{% endblock %}

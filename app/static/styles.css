@@ -208,6 +208,32 @@ h2 {
   font-size: 18px;
 }
 
+.funnel {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 14px 14px;
+}
+
+.funnel-step {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: rgba(132, 147, 167, 0.07);
+  padding: 10px;
+}
+
+.funnel-step span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.funnel-step strong {
+  color: var(--cyan);
+  font-size: 18px;
+}
+
 .filters {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -275,9 +301,19 @@ select {
   color: var(--cyan);
 }
 
+.preset-danger:hover {
+  border-color: var(--red);
+  background: rgba(255, 95, 109, 0.08);
+  color: var(--red);
+}
+
 .table-wrap {
   overflow-x: auto;
   max-height: 72vh;
+}
+
+.observation-table {
+  max-height: 78vh;
 }
 
 table {
@@ -367,6 +403,126 @@ tr:hover td {
   background: rgba(132, 147, 167, 0.08);
 }
 
+.v2-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.v2-status-high-signal {
+  color: var(--cyan);
+  border-color: rgba(51, 199, 222, 0.55);
+  background: rgba(51, 199, 222, 0.11);
+}
+
+.v2-status-watch {
+  color: var(--blue);
+  border-color: rgba(96, 165, 250, 0.5);
+  background: rgba(96, 165, 250, 0.09);
+}
+
+.v2-status-early-watch {
+  color: var(--yellow);
+  border-color: rgba(240, 180, 41, 0.45);
+  background: rgba(240, 180, 41, 0.09);
+}
+
+.v2-status-avoid {
+  color: var(--red);
+  border-color: rgba(255, 95, 109, 0.45);
+  background: rgba(255, 95, 109, 0.1);
+}
+
+.v2-status-rejected {
+  color: var(--muted);
+  border-color: var(--border);
+  background: rgba(132, 147, 167, 0.08);
+}
+
+.metric-healthy {
+  color: var(--green);
+}
+
+.metric-risk {
+  color: var(--red);
+}
+
+.compact-reasons {
+  max-width: 260px;
+  color: var(--muted);
+  white-space: normal;
+  line-height: 1.35;
+}
+
+.diagnostics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  padding: 14px;
+}
+
+.diagnostics-block {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.diagnostics-block h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.metric-chip-grid,
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.metric-chip,
+.reason-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(132, 147, 167, 0.07);
+  color: var(--muted);
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.metric-chip strong {
+  color: var(--text);
+  font-size: 12px;
+}
+
+.reason-chip.healthy {
+  color: var(--green);
+  border-color: rgba(40, 209, 124, 0.42);
+  background: rgba(40, 209, 124, 0.08);
+}
+
+.reason-chip.avoid {
+  color: var(--red);
+  border-color: rgba(255, 95, 109, 0.38);
+  background: rgba(255, 95, 109, 0.08);
+}
+
+.empty-inline {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .reason {
   max-width: 420px;
   white-space: pre-wrap;
@@ -403,8 +559,10 @@ tr:hover td {
   .nav,
   .cards-grid,
   .summary-grid,
+  .funnel,
   .filters,
-  .chart-grid {
+  .chart-grid,
+  .diagnostics-grid {
     grid-template-columns: 1fr;
   }
 

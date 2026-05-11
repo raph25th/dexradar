@@ -61,6 +61,10 @@ class Token(TimestampMixin, Base):
         back_populates="base_token",
         cascade="all, delete-orphan",
     )
+    observations: Mapped[list["CandidateObservation"]] = relationship(
+        back_populates="token",
+        cascade="all, delete-orphan",
+    )
 
 
 class Pair(TimestampMixin, Base):
@@ -91,6 +95,10 @@ class Pair(TimestampMixin, Base):
         cascade="all, delete-orphan",
     )
     alerts: Mapped[list["Alert"]] = relationship(
+        back_populates="pair",
+        cascade="all, delete-orphan",
+    )
+    observations: Mapped[list["CandidateObservation"]] = relationship(
         back_populates="pair",
         cascade="all, delete-orphan",
     )
@@ -133,6 +141,10 @@ class PairSnapshot(Base):
         back_populates="snapshot",
         cascade="all, delete-orphan",
     )
+    observations: Mapped[list["CandidateObservation"]] = relationship(
+        back_populates="snapshot",
+        cascade="all, delete-orphan",
+    )
 
 
 class Alert(Base):
@@ -166,3 +178,60 @@ class Alert(Base):
 
     pair: Mapped[Pair] = relationship(back_populates="alerts")
     snapshot: Mapped[PairSnapshot] = relationship(back_populates="alerts")
+
+
+class CandidateObservation(Base):
+    __tablename__ = "candidate_observations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    pair_id: Mapped[int] = mapped_column(
+        ForeignKey("pairs.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    snapshot_id: Mapped[int] = mapped_column(
+        ForeignKey("pair_snapshots.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    token_id: Mapped[int] = mapped_column(
+        ForeignKey("tokens.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        index=True,
+    )
+    v2_status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    passed_profiles_json: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    reasons_json: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    avoid_reasons_json: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    metrics_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    liquidity_usd: Mapped[Decimal | None] = mapped_column(Numeric(24, 2), nullable=True)
+    volume_1h: Mapped[Decimal | None] = mapped_column(Numeric(24, 2), nullable=True)
+    volume_24h: Mapped[Decimal | None] = mapped_column(Numeric(24, 2), nullable=True)
+    txns_1h_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    buy_ratio: Mapped[Decimal | None] = mapped_column(Numeric(12, 6), nullable=True)
+    volume_liquidity_ratio_1h: Mapped[Decimal | None] = mapped_column(
+        Numeric(24, 8),
+        nullable=True,
+    )
+    fdv_volume_ratio_1h: Mapped[Decimal | None] = mapped_column(Numeric(24, 8), nullable=True)
+    liquidity_fdv_ratio: Mapped[Decimal | None] = mapped_column(Numeric(24, 8), nullable=True)
+    fdv: Mapped[Decimal | None] = mapped_column(Numeric(24, 2), nullable=True)
+    market_cap: Mapped[Decimal | None] = mapped_column(Numeric(24, 2), nullable=True)
+    price_change_1h: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
+    price_change_6h: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
+    price_change_24h: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    pair: Mapped[Pair] = relationship(back_populates="observations")
+    snapshot: Mapped[PairSnapshot] = relationship(back_populates="observations")
+    token: Mapped[Token] = relationship(back_populates="observations")

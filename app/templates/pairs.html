@@ -31,6 +31,17 @@
       </select>
     </label>
     <label>
+      V2 Status
+      <select name="v2_status">
+        <option value="all" {% if filters.v2_status == "all" %}selected{% endif %}>All</option>
+        <option value="early_watch" {% if filters.v2_status == "early_watch" %}selected{% endif %}>Early Watch</option>
+        <option value="watch" {% if filters.v2_status == "watch" %}selected{% endif %}>Watch</option>
+        <option value="high_signal" {% if filters.v2_status == "high_signal" %}selected{% endif %}>High Signal</option>
+        <option value="avoid" {% if filters.v2_status == "avoid" %}selected{% endif %}>Avoid</option>
+        <option value="rejected" {% if filters.v2_status == "rejected" %}selected{% endif %}>Rejected</option>
+      </select>
+    </label>
+    <label>
       Sort
       <select name="sort">
         <option value="volume_1h" {% if filters.sort == "volume_1h" %}selected{% endif %}>Volume 1h</option>
@@ -56,6 +67,11 @@
   <a class="preset-link" href="/dashboard/pairs?min_liquidity=100000&amp;sort=liquidity">Liquid</a>
   <a class="preset-link" href="/dashboard/pairs?sort=price_change_1h">Movers</a>
   <a class="preset-link" href="/dashboard/pairs?max_fdv=10000000&amp;sort=volume_1h">Low FDV</a>
+  <a class="preset-link" href="/dashboard/pairs?v2_status=early_watch">V2 Early</a>
+  <a class="preset-link" href="/dashboard/pairs?v2_status=watch">V2 Watch</a>
+  <a class="preset-link" href="/dashboard/pairs?v2_status=high_signal">V2 High</a>
+  <a class="preset-link preset-danger" href="/dashboard/pairs?v2_status=avoid">Avoid</a>
+  <a class="preset-link" href="/dashboard/pairs?sort=volume_1h&amp;min_volume_1h=5000">Healthy Momentum</a>
 </section>
 
 <section class="panel">
@@ -70,6 +86,11 @@
           <tr>
             <th>Token</th>
             <th>Status</th>
+            <th>V2 Status</th>
+            <th>V/L 1h</th>
+            <th>FDV/Vol 1h</th>
+            <th>Buy Ratio</th>
+            <th>V2 Reasons</th>
             <th>Name</th>
             <th>Pair</th>
             <th>Liquidity</th>
@@ -93,9 +114,16 @@
             {% set pair = row.pair %}
             {% set snapshot = row.snapshot %}
             {% set token = row.token %}
+            {% set filter_v2 = row.filter_v2 %}
+            {% set metrics = filter_v2.metrics %}
             <tr>
               <td><strong>{{ token.symbol or "n/a" }}</strong></td>
               <td><span class="status-badge {{ row.status.class }}">{{ row.status.label }}</span></td>
+              <td><span class="v2-status-badge {{ filter_v2.status_meta.class }}">{{ filter_v2.status_meta.label }}</span></td>
+              <td class="{% if metrics.volume_liquidity_ratio_1h and metrics.volume_liquidity_ratio_1h >= 0.10 %}metric-healthy{% endif %}">{{ metrics.volume_liquidity_ratio_1h|ratio(2) }}</td>
+              <td class="{% if metrics.fdv_volume_ratio_1h and metrics.fdv_volume_ratio_1h <= 1000 %}metric-healthy{% elif metrics.fdv_volume_ratio_1h and metrics.fdv_volume_ratio_1h > 2000 %}metric-risk{% endif %}">{{ metrics.fdv_volume_ratio_1h|ratio(1) }}</td>
+              <td class="{% if metrics.buy_ratio and metrics.buy_ratio >= 0.45 and metrics.buy_ratio <= 0.85 %}metric-healthy{% elif metrics.buy_ratio and (metrics.buy_ratio < 0.35 or metrics.buy_ratio > 0.95) %}metric-risk{% endif %}">{{ metrics.buy_ratio|ratio_percent }}</td>
+              <td class="compact-reasons">{{ filter_v2.reason_summary }}</td>
               <td>{{ token.name or "n/a" }}</td>
               <td class="mono">{{ pair.pair_address|short_address }}</td>
               <td>{{ snapshot.liquidity_usd|money }}</td>

@@ -238,3 +238,68 @@ sudo ufw status
 ```
 
 Для production обычно лучше поставить Nginx reverse proxy и не открывать Uvicorn напрямую в интернет.
+
+## 15. Filter v2 Observations
+
+После этой версии сервис сохраняет диагностические результаты Filter v2 в таблицу `candidate_observations`.
+
+Назначение этого слоя:
+
+- 2–3 дня копить историю по всем fetched candidate pairs;
+- видеть, какие пары попадали в `early_watch`, `watch`, `high_signal`, `avoid`, `rejected`;
+- анализировать missed opportunities и шумные критерии без изменения Telegram и текущих alerts.
+
+После деплоя обязательно примените новую миграцию:
+
+```bash
+cd /opt/eth-dex-radar
+sudo -u ethradar .venv/bin/alembic upgrade head
+sudo systemctl restart eth-dex-radar
+```
+
+Проверка dashboard:
+
+```text
+http://SERVER_IP:8000/dashboard
+http://SERVER_IP:8000/dashboard/observations
+http://SERVER_IP:8000/dashboard/pairs
+```
+
+Если порт `8000` закрыт firewall, используйте SSH tunnel:
+
+```bash
+ssh -L 8000:127.0.0.1:8000 root@SERVER_IP
+```
+
+И откройте локально:
+
+```text
+http://127.0.0.1:8000/dashboard/observations
+```
+
+SQL-проверка количества observations:
+
+```sql
+SELECT COUNT(*) FROM candidate_observations;
+```
+
+Распределение статусов за последние 24 часа:
+
+```sql
+SELECT v2_status, COUNT(*)
+FROM candidate_observations
+WHERE observed_at >= NOW() - INTERVAL '24 hours'
+GROUP BY v2_status
+ORDER BY COUNT(*) DESC;
+```
+
+Последние 20 observations:
+
+```sql
+SELECT *
+FROM candidate_observations
+ORDER BY observed_at DESC
+LIMIT 20;
+```
+
+Эти данные стоит собирать минимум 2–3 дня перед изменением реальных alert thresholds.

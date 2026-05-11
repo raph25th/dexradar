@@ -19,6 +19,7 @@
         <nav class="nav">
           <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}active{% endif %}">Overview</a>
           <a href="/dashboard/pairs" class="{% if request.url.path.startswith('/dashboard/pairs') %}active{% endif %}">Pairs</a>
+          <a href="/dashboard/observations" class="{% if request.url.path == '/dashboard/observations' %}active{% endif %}">Observations</a>
           <a href="/dashboard/alerts" class="{% if request.url.path == '/dashboard/alerts' %}active{% endif %}">Alerts</a>
           <a href="/api/status" target="_blank" rel="noreferrer">API Status</a>
         </nav>

@@ -19,6 +19,7 @@
               <th>Level</th>
               <th>Reason</th>
               <th>Telegram</th>
+              <th>Detail</th>
             </tr>
           </thead>
           <tbody>
@@ -31,6 +32,7 @@
                 <td><span class="badge warning">{{ alert.level }}</span></td>
                 <td class="reason">{{ alert.reason }}</td>
                 <td>{{ "yes" if alert.sent_to_telegram else "no" }}</td>
+                <td><a href="/dashboard/pairs/{{ alert.pair_id }}">detail</a></td>
               </tr>
             {% endfor %}
           </tbody>
@@ -63,6 +65,10 @@
       <strong>{{ status.total_alerts }}</strong>
     </div>
     <div class="card">
+      <span class="card-label">Observations</span>
+      <strong>{{ status.total_observations }}</strong>
+    </div>
+    <div class="card">
       <span class="card-label">Snapshots 1h</span>
       <strong>{{ status.snapshots_last_1h }}</strong>
     </div>
@@ -71,9 +77,110 @@
       <strong>{{ status.snapshots_last_24h }}</strong>
     </div>
     <div class="card">
+      <span class="card-label">Observations 24h</span>
+      <strong>{{ status.observations_last_24h }}</strong>
+    </div>
+    <div class="card">
       <span class="card-label">Last snapshot</span>
       <strong class="small-value">{{ status.last_snapshot_at or "n/a" }}</strong>
     </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Filter v2 Observation Summary</h2>
+      <span class="muted">Last 24h</span>
+    </div>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <span>V2 Early Watch</span>
+        <strong>{{ status.v2_status_counts_last_24h.early_watch }}</strong>
+      </div>
+      <div class="summary-item">
+        <span>V2 Watch</span>
+        <strong>{{ status.v2_status_counts_last_24h.watch }}</strong>
+      </div>
+      <div class="summary-item">
+        <span>V2 High Signal</span>
+        <strong>{{ status.v2_status_counts_last_24h.high_signal }}</strong>
+      </div>
+      <div class="summary-item">
+        <span>V2 Avoid</span>
+        <strong>{{ status.v2_status_counts_last_24h.avoid }}</strong>
+      </div>
+      <div class="summary-item">
+        <span>V2 Rejected</span>
+        <strong>{{ status.v2_status_counts_last_24h.rejected }}</strong>
+      </div>
+    </div>
+    <div class="funnel">
+      <div class="funnel-step">
+        <span>Snapshots</span>
+        <strong>{{ status.snapshots_last_24h }}</strong>
+      </div>
+      <div class="funnel-step">
+        <span>Observations</span>
+        <strong>{{ status.observations_last_24h }}</strong>
+      </div>
+      <div class="funnel-step">
+        <span>Early Watch v2</span>
+        <strong>{{ status.v2_status_counts_last_24h.early_watch }}</strong>
+      </div>
+      <div class="funnel-step">
+        <span>Watch v2</span>
+        <strong>{{ status.v2_status_counts_last_24h.watch }}</strong>
+      </div>
+      <div class="funnel-step">
+        <span>High Signal v2</span>
+        <strong>{{ status.v2_status_counts_last_24h.high_signal }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Top V2 Candidates Last 24h</h2>
+      <span class="muted">{{ top_v2_candidates|length }} rows</span>
+    </div>
+    {% if top_v2_candidates %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Token</th>
+              <th>V2 Status</th>
+              <th>Liquidity</th>
+              <th>Volume 1h</th>
+              <th>Txns 1h</th>
+              <th>Buy Ratio</th>
+              <th>V/L 1h</th>
+              <th>FDV/Vol 1h</th>
+              <th>Last Seen</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for observation in top_v2_candidates %}
+              {% set token = observation.pair.base_token %}
+              <tr>
+                <td><strong>{{ token.symbol or "n/a" }}</strong></td>
+                <td><span class="v2-status-badge {{ v2_status_meta[observation.v2_status].class }}">{{ v2_status_meta[observation.v2_status].label }}</span></td>
+                <td>{{ observation.liquidity_usd|money }}</td>
+                <td>{{ observation.volume_1h|money }}</td>
+                <td>{{ observation.txns_1h_total }}</td>
+                <td>{{ observation.buy_ratio|ratio_percent }}</td>
+                <td>{{ observation.volume_liquidity_ratio_1h|ratio(2) }}</td>
+                <td>{{ observation.fdv_volume_ratio_1h|ratio(1) }}</td>
+                <td title="{{ observation.observed_at|datetime }}">{{ observation.observed_at|relative_time }}</td>
+                <td><a href="/dashboard/pairs/{{ observation.pair_id }}">detail</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">No Filter v2 observations in the last 24h yet.</div>
+    {% endif %}
   </section>
 
   <section class="panel">
