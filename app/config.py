@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     telegram_chat_id: str | None = Field(default=None)
     dexscreener_base_url: str = Field(default="https://api.dexscreener.com")
     poll_interval_seconds: int = Field(default=300, ge=30)
+    dashboard_username: str = Field(default="admin")
+    dashboard_password: str = Field(default="admin")
 
     model_config = SettingsConfigDict(
         env_file=".env",

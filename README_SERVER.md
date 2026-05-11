@@ -83,9 +83,13 @@ TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 DEXSCREENER_BASE_URL=https://api.dexscreener.com
 POLL_INTERVAL_SECONDS=300
+DASHBOARD_USERNAME=admin
+DASHBOARD_PASSWORD=admin
 ```
 
 Если Telegram пока не нужен, оставьте `TELEGRAM_BOT_TOKEN` и `TELEGRAM_CHAT_ID` пустыми. Сервис не должен падать без Telegram credentials.
+
+Важно: на VPS обязательно замените `DASHBOARD_USERNAME=admin` и `DASHBOARD_PASSWORD=admin` на собственные значения. `admin/admin` допустимы только для локальной разработки.
 
 ## 7. Создайте виртуальное окружение и установите зависимости
 
@@ -114,6 +118,7 @@ sudo -u ethradar .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ```bash
 curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/api/status
 curl http://127.0.0.1:8000/status
 curl -X POST http://127.0.0.1:8000/jobs/collect-once
 curl http://127.0.0.1:8000/alerts/recent
@@ -188,7 +193,42 @@ tail -f /opt/eth-dex-radar/logs/app.log
 tail -f /opt/eth-dex-radar/logs/errors.log
 ```
 
-## 13. Firewall
+## 13. Web Dashboard
+
+Dashboard доступен по URL:
+
+```text
+http://SERVER_IP:8000/dashboard
+```
+
+Dashboard защищён Basic Auth. Логин и пароль берутся из `.env`:
+
+```env
+DASHBOARD_USERNAME=your_dashboard_user
+DASHBOARD_PASSWORD=your_strong_dashboard_password
+```
+
+Если UFW закрывает порт `8000`, dashboard будет доступен только локально на сервере или через SSH tunnel.
+
+Пример SSH tunnel с локального компьютера:
+
+```bash
+ssh -L 8000:127.0.0.1:8000 root@SERVER_IP
+```
+
+После этого dashboard можно открыть локально:
+
+```text
+http://127.0.0.1:8000/dashboard
+```
+
+Проверка JSON status:
+
+```bash
+curl http://127.0.0.1:8000/api/status
+```
+
+## 14. Firewall
 
 Если API должен быть доступен снаружи, откройте порт `8000`:
 

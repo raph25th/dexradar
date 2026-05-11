@@ -5,6 +5,7 @@ from typing import Any
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
@@ -15,11 +16,14 @@ from app.db.session import SessionLocal
 from app.jobs.collect_pairs import run_collection_cycle
 from app.logging_config import configure_logging
 from app.runtime_state import get_runtime_state
+from app.web.routes import router as web_router
 
 configure_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="eth-dex-radar", version="0.1.0")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.include_router(web_router)
 scheduler: AsyncIOScheduler | None = None
 
 

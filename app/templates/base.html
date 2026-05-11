@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ page_title }} | eth-dex-radar</title>
+    <link rel="stylesheet" href="{{ request.url_for('static', path='styles.css') }}">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark"></div>
+          <div>
+            <div class="brand-title">eth-dex-radar</div>
+            <div class="brand-subtitle">Web Dashboard Lite</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a href="/dashboard" class="{% if request.url.path == '/dashboard' %}active{% endif %}">Overview</a>
+          <a href="/dashboard/pairs" class="{% if request.url.path.startswith('/dashboard/pairs') %}active{% endif %}">Pairs</a>
+          <a href="/dashboard/alerts" class="{% if request.url.path == '/dashboard/alerts' %}active{% endif %}">Alerts</a>
+          <a href="/api/status" target="_blank" rel="noreferrer">API Status</a>
+        </nav>
+      </aside>
+      <main class="content">
+        <header class="page-header">
+          <div>
+            <h1>{{ page_title }}</h1>
+            <p class="muted">Ethereum DEX monitoring backend</p>
+          </div>
+          <div class="status-pill">online</div>
+        </header>
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </body>
+</html>

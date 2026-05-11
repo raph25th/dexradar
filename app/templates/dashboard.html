@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block content %}
+{% if alerts_page %}
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Recent Alerts</h2>
+      <span class="muted">Last 50 alerts</span>
+    </div>
+    {% if alerts %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Created</th>
+              <th>Token</th>
+              <th>Pair</th>
+              <th>Score</th>
+              <th>Level</th>
+              <th>Reason</th>
+              <th>Telegram</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for alert in alerts %}
+              <tr>
+                <td>{{ alert.created_at|datetime }}</td>
+                <td>{{ alert.pair.base_token.symbol or "n/a" }}</td>
+                <td><a href="/dashboard/pairs/{{ alert.pair_id }}">{{ alert.pair.pair_address|short_address }}</a></td>
+                <td>{{ alert.score }}</td>
+                <td><span class="badge warning">{{ alert.level }}</span></td>
+                <td class="reason">{{ alert.reason }}</td>
+                <td>{{ "yes" if alert.sent_to_telegram else "no" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state">No alerts yet. Alerts will appear when pairs pass configured filters.</div>
+    {% endif %}
+  </section>
+{% else %}
+  <section class="cards-grid">
+    <div class="card">
+      <span class="card-label">Backend status</span>
+      <strong class="{% if status.status == 'ok' %}positive{% else %}warning{% endif %}">{{ status.status }}</strong>
+    </div>
+    <div class="card">
+      <span class="card-label">Tokens</span>
+      <strong>{{ status.total_tokens }}</strong>
+    </div>
+    <div class="card">
+      <span class="card-label">Pairs</span>
+      <strong>{{ status.total_pairs }}</strong>
+    </div>
+    <div class="card">
+      <span class="card-label">Snapshots</span>
+      <strong>{{ status.total_snapshots }}</strong>
+    </div>
+    <div class="card">
+      <span class="card-label">Alerts</span>
+      <strong>{{ status.total_alerts }}</strong>
+    </div>
+    <div class="card">
+      <span class="card-label">Snapshots 1h</span>
+      <strong>{{ status.snapshots_last_1h }}</strong>
+    </div>
+    <div class="card">
+      <span class="card-label">Snapshots 24h</span>
+      <strong>{{ status.snapshots_last_24h }}</strong>
+    </div>
+    <div class="card">
+      <span class="card-label">Last snapshot</span>
+      <strong class="small-value">{{ status.last_snapshot_at or "n/a" }}</strong>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Latest Collection Summary</h2>
+      <span class="muted">runtime memory</span>
+    </div>
+    {% if status.last_collection_summary %}
+      <div class="summary-grid">
+        {% for key, value in status.last_collection_summary.items() %}
+          <div class="summary-item">
+            <span>{{ key }}</span>
+            <strong>{{ value }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state">No collection summary in runtime memory.</div>
+    {% endif %}
+  </section>
+{% endif %}
+{% endblock %}

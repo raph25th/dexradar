@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="panel">
+  <form class="filters" method="get" action="/dashboard/pairs">
+    <label>
+      Min liquidity
+      <input type="number" name="min_liquidity" value="{{ filters.min_liquidity or '' }}" min="0" step="1000">
+    </label>
+    <label>
+      Min volume 1h
+      <input type="number" name="min_volume_1h" value="{{ filters.min_volume_1h or '' }}" min="0" step="1000">
+    </label>
+    <label>
+      Min txns 1h
+      <input type="number" name="min_txns_1h" value="{{ filters.min_txns_1h or '' }}" min="0" step="1">
+    </label>
+    <label>
+      Max FDV
+      <input type="number" name="max_fdv" value="{{ filters.max_fdv or '' }}" min="0" step="100000">
+    </label>
+    <label>
+      Limit
+      <input type="number" name="limit" value="{{ filters.limit }}" min="1" max="500" step="1">
+    </label>
+    <button type="submit">Apply</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Latest Active Pairs</h2>
+    <span class="muted">{{ pairs|length }} rows</span>
+  </div>
+  {% if pairs %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Token</th>
+            <th>Name</th>
+            <th>Pair</th>
+            <th>Liquidity</th>
+            <th>Volume 1h</th>
+            <th>Volume 24h</th>
+            <th>Txns 1h</th>
+            <th>FDV</th>
+            <th>Market cap</th>
+            <th>Price</th>
+            <th>1h</th>
+            <th>6h</th>
+            <th>24h</th>
+            <th>Last seen</th>
+            <th>DEX</th>
+            <th>Detail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in pairs %}
+            {% set pair = row.pair %}
+            {% set snapshot = row.snapshot %}
+            {% set token = row.token %}
+            <tr>
+              <td><strong>{{ token.symbol or "n/a" }}</strong></td>
+              <td>{{ token.name or "n/a" }}</td>
+              <td class="mono">{{ pair.pair_address|short_address }}</td>
+              <td>{{ snapshot.liquidity_usd|money }}</td>
+              <td>{{ snapshot.volume_1h|money }}</td>
+              <td>{{ snapshot.volume_24h|money }}</td>
+              <td>{{ row.txns_1h }}</td>
+              <td>{{ snapshot.fdv|money }}</td>
+              <td>{{ snapshot.market_cap|money }}</td>
+              <td>{{ snapshot.price_usd|number(8) }}</td>
+              <td class="{% if snapshot.price_change_1h and snapshot.price_change_1h > 0 %}positive{% elif snapshot.price_change_1h and snapshot.price_change_1h < 0 %}negative{% endif %}">{{ snapshot.price_change_1h|percent }}</td>
+              <td class="{% if snapshot.price_change_6h and snapshot.price_change_6h > 0 %}positive{% elif snapshot.price_change_6h and snapshot.price_change_6h < 0 %}negative{% endif %}">{{ snapshot.price_change_6h|percent }}</td>
+              <td class="{% if snapshot.price_change_24h and snapshot.price_change_24h > 0 %}positive{% elif snapshot.price_change_24h and snapshot.price_change_24h < 0 %}negative{% endif %}">{{ snapshot.price_change_24h|percent }}</td>
+              <td>{{ snapshot.created_at|datetime }}</td>
+              <td>{% if pair.dexscreener_url %}<a href="{{ pair.dexscreener_url }}" target="_blank" rel="noreferrer">open</a>{% else %}n/a{% endif %}</td>
+              <td><a href="/dashboard/pairs/{{ pair.id }}">detail</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">No pairs matched current filters.</div>
+  {% endif %}
+</section>
+{% endblock %}

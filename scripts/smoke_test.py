@@ -84,6 +84,22 @@ def main() -> int:
     )
     route_paths = {route.path for route in app.routes}
     checks.append(("import /status endpoint", "/status" in route_paths, "status route registered"))
+    checks.append(("import /api/status endpoint", "/api/status" in route_paths, "api status route registered"))
+    checks.append(("import /dashboard endpoint", "/dashboard" in route_paths, "dashboard route registered"))
+    checks.append(
+        (
+            "import /dashboard/pairs endpoint",
+            "/dashboard/pairs" in route_paths,
+            "dashboard pairs route registered",
+        )
+    )
+    checks.append(
+        (
+            "import /dashboard/alerts endpoint",
+            "/dashboard/alerts" in route_paths,
+            "dashboard alerts route registered",
+        )
+    )
 
     try:
         with engine.connect() as connection:

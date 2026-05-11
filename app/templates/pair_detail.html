@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="cards-grid">
+  <div class="card wide">
+    <span class="card-label">Token</span>
+    <strong>{{ token.symbol or "n/a" }}</strong>
+    <p>{{ token.name or "n/a" }}</p>
+    <p class="mono">{{ token.address }}</p>
+  </div>
+  <div class="card wide">
+    <span class="card-label">Pair</span>
+    <strong>{{ pair.dex_id or "n/a" }} / {{ pair.quote_token_symbol or "n/a" }}</strong>
+    <p class="mono">{{ pair.pair_address }}</p>
+    {% if pair.dexscreener_url %}
+      <a href="{{ pair.dexscreener_url }}" target="_blank" rel="noreferrer">Open DEX Screener</a>
+    {% endif %}
+  </div>
+</section>
+
+<section class="cards-grid">
+  <div class="card">
+    <span class="card-label">Price</span>
+    <strong>{{ latest_snapshot.price_usd|number(8) if latest_snapshot else "n/a" }}</strong>
+  </div>
+  <div class="card">
+    <span class="card-label">Liquidity</span>
+    <strong>{{ latest_snapshot.liquidity_usd|money if latest_snapshot else "n/a" }}</strong>
+  </div>
+  <div class="card">
+    <span class="card-label">Volume 1h</span>
+    <strong>{{ latest_snapshot.volume_1h|money if latest_snapshot else "n/a" }}</strong>
+  </div>
+  <div class="card">
+    <span class="card-label">Txns 1h</span>
+    <strong>{{ latest_txns_1h }}</strong>
+  </div>
+  <div class="card">
+    <span class="card-label">FDV</span>
+    <strong>{{ latest_snapshot.fdv|money if latest_snapshot else "n/a" }}</strong>
+  </div>
+  <div class="card">
+    <span class="card-label">Last seen</span>
+    <strong class="small-value">{{ latest_snapshot.created_at|datetime if latest_snapshot else "n/a" }}</strong>
+  </div>
+</section>
+
+<section class="chart-grid">
+  <div class="placeholder">Price chart coming soon</div>
+  <div class="placeholder">Liquidity chart coming soon</div>
+  <div class="placeholder">Volume chart coming soon</div>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Last 50 Snapshots</h2>
+    <span class="muted">{{ snapshots|length }} rows</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Created</th>
+          <th>Price</th>
+          <th>Liquidity</th>
+          <th>Volume 1h</th>
+          <th>Volume 24h</th>
+          <th>Txns 1h</th>
+          <th>FDV</th>
+          <th>1h</th>
+          <th>6h</th>
+          <th>24h</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for snapshot in snapshots %}
+          <tr>
+            <td>{{ snapshot.created_at|datetime }}</td>
+            <td>{{ snapshot.price_usd|number(8) }}</td>
+            <td>{{ snapshot.liquidity_usd|money }}</td>
+            <td>{{ snapshot.volume_1h|money }}</td>
+            <td>{{ snapshot.volume_24h|money }}</td>
+            <td>{{ snapshot.txns_1h_buys + snapshot.txns_1h_sells }}</td>
+            <td>{{ snapshot.fdv|money }}</td>
+            <td>{{ snapshot.price_change_1h|percent }}</td>
+            <td>{{ snapshot.price_change_6h|percent }}</td>
+            <td>{{ snapshot.price_change_24h|percent }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>Pair Alerts</h2>
+    <span class="muted">{{ alerts|length }} rows</span>
+  </div>
+  {% if alerts %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Created</th>
+            <th>Score</th>
+            <th>Level</th>
+            <th>Reason</th>
+            <th>Telegram</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for alert in alerts %}
+            <tr>
+              <td>{{ alert.created_at|datetime }}</td>
+              <td>{{ alert.score }}</td>
+              <td><span class="badge warning">{{ alert.level }}</span></td>
+              <td class="reason">{{ alert.reason }}</td>
+              <td>{{ "yes" if alert.sent_to_telegram else "no" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state">No alerts for this pair.</div>
+  {% endif %}
+</section>
+{% endblock %}
