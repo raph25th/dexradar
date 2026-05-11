@@ -5,26 +5,57 @@
   <form class="filters" method="get" action="/dashboard/pairs">
     <label>
       Min liquidity
-      <input type="number" name="min_liquidity" value="{{ filters.min_liquidity or '' }}" min="0" step="1000">
+      <input type="number" name="min_liquidity" value="{{ filters.min_liquidity or '' }}" min="0" step="1000" placeholder="Min liquidity">
     </label>
     <label>
       Min volume 1h
-      <input type="number" name="min_volume_1h" value="{{ filters.min_volume_1h or '' }}" min="0" step="1000">
+      <input type="number" name="min_volume_1h" value="{{ filters.min_volume_1h or '' }}" min="0" step="1000" placeholder="Min volume 1h">
     </label>
     <label>
       Min txns 1h
-      <input type="number" name="min_txns_1h" value="{{ filters.min_txns_1h or '' }}" min="0" step="1">
+      <input type="number" name="min_txns_1h" value="{{ filters.min_txns_1h or '' }}" min="0" step="1" placeholder="Min txns 1h">
     </label>
     <label>
       Max FDV
-      <input type="number" name="max_fdv" value="{{ filters.max_fdv or '' }}" min="0" step="100000">
+      <input type="number" name="max_fdv" value="{{ filters.max_fdv or '' }}" min="0" step="100000" placeholder="Max FDV">
+    </label>
+    <label>
+      Status
+      <select name="status">
+        <option value="all" {% if filters.status == "all" %}selected{% endif %}>All</option>
+        <option value="early_watch" {% if filters.status == "early_watch" %}selected{% endif %}>Early Watch</option>
+        <option value="basic" {% if filters.status == "basic" %}selected{% endif %}>Basic Signal</option>
+        <option value="alerted" {% if filters.status == "alerted" %}selected{% endif %}>Alerted</option>
+        <option value="rejected" {% if filters.status == "rejected" %}selected{% endif %}>Rejected</option>
+        <option value="tracked" {% if filters.status == "tracked" %}selected{% endif %}>Tracked</option>
+      </select>
+    </label>
+    <label>
+      Sort
+      <select name="sort">
+        <option value="volume_1h" {% if filters.sort == "volume_1h" %}selected{% endif %}>Volume 1h</option>
+        <option value="latest" {% if filters.sort == "latest" %}selected{% endif %}>Latest</option>
+        <option value="liquidity" {% if filters.sort == "liquidity" %}selected{% endif %}>Liquidity</option>
+        <option value="txns_1h" {% if filters.sort == "txns_1h" %}selected{% endif %}>Txns 1h</option>
+        <option value="price_change_1h" {% if filters.sort == "price_change_1h" %}selected{% endif %}>Price change 1h</option>
+        <option value="fdv" {% if filters.sort == "fdv" %}selected{% endif %}>FDV</option>
+      </select>
     </label>
     <label>
       Limit
-      <input type="number" name="limit" value="{{ filters.limit }}" min="1" max="500" step="1">
+      <input type="number" name="limit" value="{{ filters.limit }}" min="1" max="500" step="1" placeholder="Limit">
     </label>
     <button type="submit">Apply</button>
   </form>
+</section>
+
+<section class="preset-bar">
+  <a class="preset-link" href="/dashboard/pairs">All</a>
+  <a class="preset-link" href="/dashboard/pairs?status=early_watch">Early Watch</a>
+  <a class="preset-link" href="/dashboard/pairs?min_volume_1h=50000&amp;sort=volume_1h">High Volume</a>
+  <a class="preset-link" href="/dashboard/pairs?min_liquidity=100000&amp;sort=liquidity">Liquid</a>
+  <a class="preset-link" href="/dashboard/pairs?sort=price_change_1h">Movers</a>
+  <a class="preset-link" href="/dashboard/pairs?max_fdv=10000000&amp;sort=volume_1h">Low FDV</a>
 </section>
 
 <section class="panel">
@@ -38,12 +69,14 @@
         <thead>
           <tr>
             <th>Token</th>
+            <th>Status</th>
             <th>Name</th>
             <th>Pair</th>
             <th>Liquidity</th>
             <th>Volume 1h</th>
             <th>Volume 24h</th>
             <th>Txns 1h</th>
+            <th>Buys/Sells 1h</th>
             <th>FDV</th>
             <th>Market cap</th>
             <th>Price</th>
@@ -62,19 +95,21 @@
             {% set token = row.token %}
             <tr>
               <td><strong>{{ token.symbol or "n/a" }}</strong></td>
+              <td><span class="status-badge {{ row.status.class }}">{{ row.status.label }}</span></td>
               <td>{{ token.name or "n/a" }}</td>
               <td class="mono">{{ pair.pair_address|short_address }}</td>
               <td>{{ snapshot.liquidity_usd|money }}</td>
               <td>{{ snapshot.volume_1h|money }}</td>
               <td>{{ snapshot.volume_24h|money }}</td>
               <td>{{ row.txns_1h }}</td>
+              <td>{% if row.buys_1h is not none or row.sells_1h is not none %}{{ row.buys_1h or 0 }} / {{ row.sells_1h or 0 }}{% else %}n/a{% endif %}</td>
               <td>{{ snapshot.fdv|money }}</td>
               <td>{{ snapshot.market_cap|money }}</td>
               <td>{{ snapshot.price_usd|number(8) }}</td>
               <td class="{% if snapshot.price_change_1h and snapshot.price_change_1h > 0 %}positive{% elif snapshot.price_change_1h and snapshot.price_change_1h < 0 %}negative{% endif %}">{{ snapshot.price_change_1h|percent }}</td>
               <td class="{% if snapshot.price_change_6h and snapshot.price_change_6h > 0 %}positive{% elif snapshot.price_change_6h and snapshot.price_change_6h < 0 %}negative{% endif %}">{{ snapshot.price_change_6h|percent }}</td>
               <td class="{% if snapshot.price_change_24h and snapshot.price_change_24h > 0 %}positive{% elif snapshot.price_change_24h and snapshot.price_change_24h < 0 %}negative{% endif %}">{{ snapshot.price_change_24h|percent }}</td>
-              <td>{{ snapshot.created_at|datetime }}</td>
+              <td title="{{ snapshot.created_at|datetime }}">{{ snapshot.created_at|relative_time }}</td>
               <td>{% if pair.dexscreener_url %}<a href="{{ pair.dexscreener_url }}" target="_blank" rel="noreferrer">open</a>{% else %}n/a{% endif %}</td>
               <td><a href="/dashboard/pairs/{{ pair.id }}">detail</a></td>
             </tr>

@@ -210,7 +210,7 @@ h2 {
 
 .filters {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   padding: 14px;
   align-items: end;
@@ -224,6 +224,7 @@ label {
 }
 
 input,
+select,
 button {
   height: 36px;
   border-radius: 6px;
@@ -241,8 +242,42 @@ button {
   font-weight: 700;
 }
 
+input::placeholder {
+  color: #4f6074;
+}
+
+select {
+  appearance: none;
+}
+
+.preset-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.preset-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.preset-link:hover {
+  border-color: var(--cyan);
+  background: rgba(51, 199, 222, 0.08);
+  color: var(--cyan);
+}
+
 .table-wrap {
   overflow-x: auto;
+  max-height: 72vh;
 }
 
 table {
@@ -260,6 +295,10 @@ td {
 }
 
 th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #0b1018;
   color: var(--muted);
   font-size: 11px;
   font-weight: 700;
@@ -267,7 +306,7 @@ th {
 }
 
 tr:hover td {
-  background: rgba(255, 255, 255, 0.025);
+  background: rgba(51, 199, 222, 0.045);
 }
 
 .mono {
@@ -284,6 +323,48 @@ tr:hover td {
 
 .warning {
   color: var(--yellow);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 0 9px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-early-watch {
+  color: var(--yellow);
+  border-color: rgba(240, 180, 41, 0.45);
+  background: rgba(240, 180, 41, 0.09);
+}
+
+.status-basic {
+  color: var(--blue);
+  border-color: rgba(96, 165, 250, 0.5);
+  background: rgba(96, 165, 250, 0.09);
+}
+
+.status-alerted {
+  color: var(--green);
+  border-color: rgba(40, 209, 124, 0.5);
+  background: rgba(40, 209, 124, 0.09);
+}
+
+.status-rejected {
+  color: var(--red);
+  border-color: rgba(255, 95, 109, 0.38);
+  background: rgba(255, 95, 109, 0.08);
+}
+
+.status-tracked {
+  color: var(--muted);
+  border-color: var(--border);
+  background: rgba(132, 147, 167, 0.08);
 }
 
 .reason {
